@@ -68,46 +68,62 @@ def initialize
 end
  
  
-def fill_data(data_name)
+ #fill the data array @t with actor_name, skill and amount of times used
+def fill_data(actor_name, data_name)
   if $game_variables[VAR].empty?
-    $game_variables[VAR].push([data_name, 1])
+    $game_variables[VAR].push([actor_name, [data_name, 1]])
     find_size
     return
   end
     $game_variables[VAR].size.times do |i|
-      if $game_variables[VAR][i].include?(data_name)
-        $game_variables[VAR][i][1] += 1
-        find_size
+      if $game_variables[VAR][i].include?(actor_name)
+        $game_variables[VAR].size.times do |o|
+          break if o + 1 == $game_variables[VAR][i].size
+      if $game_variables[VAR][i][o + 1][0].include?(data_name)
+        $game_variables[VAR][i][o + 1][1] += 1
+        find_size(i)
         return
       end
+        $game_variables[VAR][i].push([data_name, 1])
+        find_size(i)
+        return
+        end
+      end
     end
-    $game_variables[VAR].push([data_name, 1])  
-  find_size
+    $game_variables[VAR].push([actor_name, [data_name, 1]])  
+  find_size($game_variables[VAR].size - 1)
 end
  
-def find_size
-  $game_variables[VAR].each_index {|i| 
-  @b += $game_variables[VAR][i][1]}
-  collect_data
+#finds the size of the amount of times all skills are 
+#used in the data array actor name dependant
+def find_size(loc=0)
+  $game_variables[VAR][loc].each_index {|i|
+  break if i + 1 == $game_variables[VAR][loc].size
+  @b += $game_variables[VAR][loc][i + 1][1]}
+  collect_data(loc)
 end
-  
-def collect_data
+
+#collect the more data before posting and saving it
+#also controls string formating algorithms 
+def collect_data(loc)
     o = 0
-  while o + $game_variables[VAR][$game_variables[VAR].size - 1][0].length <= 20
+  while o + $game_variables[VAR][loc][$game_variables[VAR][loc].size - 1][0].length <= 20
     o += 1
   end
   u = 0
-  while u + $game_variables[VAR][$game_variables[VAR].size - 1][1].to_s.length <= 10
+  while u + $game_variables[VAR][loc][$game_variables[VAR][loc].size - 1][1].to_s.length <= 10
     u += 1
   end
   if $game_variables[VAR].size >= 1
-       $game_variables[VAR][$game_variables[VAR].size - 1][2] = ((($game_variables[VAR][$game_variables[VAR].size - 1][1].to_f / @b) * 100).round(ROUND)).to_s + "%"
-       $game_variables[VAR][$game_variables[VAR].size - 1][3] = o
-       $game_variables[VAR][$game_variables[VAR].size - 1][4] = u
+       $game_variables[VAR][loc][$game_variables[VAR][loc].size - 1][2] = (((
+       $game_variables[VAR][loc][$game_variables[VAR][loc].size - 1][1].to_f / @b) * 100).round(2)).to_s + "%"
+       $game_variables[VAR][loc][$game_variables[VAR][loc].size - 1][3] = o
+       $game_variables[VAR][loc][$game_variables[VAR][loc].size - 1][4] = u
      
-       $game_variables[VAR].size.times do |i|
-       $game_variables[VAR][i][1] = $game_variables[VAR][i][1]
-       $game_variables[VAR][i][2] = ((($game_variables[VAR][i][1].to_f / @b) * 100).round(ROUND)).to_s + "%"
+       $game_variables[VAR][loc].size.times do |i|
+        break if i + 1 == $game_variables[VAR][loc].size
+       $game_variables[VAR][loc][i + 1][1] = $game_variables[VAR][loc][i + 1][1]
+       $game_variables[VAR][loc][i + 1][2] = ((($game_variables[VAR][loc][i + 1][1].to_f / @b) * 100).round(ROUND)).to_s + "%"
   end
   end
   @b = 0
@@ -115,25 +131,43 @@ def collect_data
   save_data
 end
  
- 
+#post data to console 
 def post_data
-  print "\nSkill#{sprintf("%15s", "")}Times#{sprintf("%8s", "")}Percent\n"
-    $game_variables[VAR].size.times do |i|
-      puts $game_variables[VAR][i][0].to_s + ":#{sprintf("%#{$game_variables[VAR][i][3] - 2}s", "")}" + $game_variables[VAR][i][1].to_s + ":#{sprintf("%#{$game_variables[VAR][i][4] + 1}s", "")}" + $game_variables[VAR][i][2].to_s
+  $game_variables[VAR].size.times do |o|
+    puts  "\nActor: " + $game_variables[VAR][o].first + "\n"
+    print "\nSkill#{sprintf("%15s", "")}Times#{sprintf("%8s", "")}Percent\n"
+    $game_variables[VAR][o].size.times do |i|
+      break if i + 1 == $game_variables[VAR][o].size
+      puts $game_variables[VAR][o][i + 1][0].to_s + 
+      ":#{sprintf("%#{$game_variables[VAR][o][i + 1][3] - 2}s", "")}" + 
+      $game_variables[VAR][o][i + 1][1].to_s + 
+      ":#{sprintf("%#{$game_variables[VAR][o][i + 1][4] + 1}s", "")}" + 
+      $game_variables[VAR][o][i + 1][2].to_s
     end
   end
-  
+end
+
+ #save data to text file 
   def save_data
     open("Results.txt", "w") {|file| 
+    $game_variables[VAR].size.times do |o|
      file.write("Skill#{sprintf("%15s", "")}Times#{sprintf("%8s", "")}Percent\n")
-      $game_variables[VAR].size.times do |i|
-      file.write($game_variables[VAR][i][0].to_s + ":#{sprintf("%#{$game_variables[VAR][i][3] - 2}s", "")}" + $game_variables[VAR][i][1].to_s + ":#{sprintf("%#{$game_variables[VAR][i][4] + 1}s", "")}" + $game_variables[VAR][i][2].to_s + "\n")
-      end
+      $game_variables[VAR][o].size.times do |i|
+        break if i + 1 == $game_variables[VAR][o].size
+      file.write($game_variables[VAR][o][i + 1][0].to_s + 
+      ":#{sprintf("%#{$game_variables[VAR][o][i + 1][3] - 2}s", "")}" + 
+      $game_variables[VAR][o][i + 1][1].to_s + 
+      ":#{sprintf("%#{$game_variables[VAR][o][i + 1][4] + 1}s", "")}" + 
+      $game_variables[VAR][o][i + 1][2].to_s + "\n")
+    end
+  end
        }
   end
 end
- 
+
+#Scene Battle class
 class Scene_Battle < Scene_Base
+  #overwritten start
   def start
     super
     create_spriteset
@@ -142,6 +176,7 @@ class Scene_Battle < Scene_Base
     @susage = Skill_Usage.new
   end
   
+  #overwritten process_action
   def process_action
     return if scene_changing?
     if !@subject || !@subject.current_action
@@ -151,8 +186,8 @@ class Scene_Battle < Scene_Base
     if @subject.current_action
       @subject.current_action.prepare
       if @subject.actor? && @subject.current_action.item.is_a?(RPG::Skill)
-      @susage.fill_data(@subject.current_action.item.name)
-    end
+      @susage.fill_data(@subject.name, @subject.current_action.item.name)
+      end
       if @subject.current_action.valid?
         @status_window.open
         execute_action
