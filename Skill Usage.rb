@@ -2,7 +2,7 @@
 # Skill_Usage
 # Author Sarlecc
 # TERMS http://sarleccmythicalgames.blogspot.com/p/blog-page_12.html
-#
+# Version 1.5.1
 #======================================================================
 #
 # Skill Usage script: Have you ever wantted to know precisely how many
