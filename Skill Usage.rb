@@ -150,7 +150,7 @@ class Scene_Battle < Scene_Base
     return turn_end unless @subject
     if @subject.current_action
       @subject.current_action.prepare
-      if @subject.actor?
+      if @subject.actor? && @subject.current_action.item.is_a?(RPG::Skill)
       @susage.fill_data(@subject.current_action.item.name)
     end
       if @subject.current_action.valid?
