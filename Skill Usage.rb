@@ -151,6 +151,7 @@ end
   def save_data
     open("Results.txt", "w") {|file| 
     $game_variables[VAR].size.times do |o|
+    file.write("\nActor: " + $game_variables[VAR][o].first + "\n")
      file.write("Skill#{sprintf("%15s", "")}Times#{sprintf("%8s", "")}Percent\n")
       $game_variables[VAR][o].size.times do |i|
         break if i + 1 == $game_variables[VAR][o].size
