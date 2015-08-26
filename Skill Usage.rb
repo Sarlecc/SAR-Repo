@@ -2,7 +2,7 @@
 # Skill_Usage
 # Author Sarlecc
 # TERMS http://sarleccmythicalgames.blogspot.com/p/blog-page_12.html
-# Version 1.5.1
+# Version 1.5.2
 #======================================================================
 #
 # Skill Usage script: Have you ever wantted to know precisely how many
@@ -77,17 +77,17 @@ def fill_data(actor_name, data_name)
   end
     $game_variables[VAR].size.times do |i|
       if $game_variables[VAR][i].include?(actor_name)
-        $game_variables[VAR].size.times do |o|
+        $game_variables[VAR][i].size.times do |o|
           break if o + 1 == $game_variables[VAR][i].size
       if $game_variables[VAR][i][o + 1][0].include?(data_name)
         $game_variables[VAR][i][o + 1][1] += 1
         find_size(i)
         return
       end
+    end
         $game_variables[VAR][i].push([data_name, 1])
         find_size(i)
         return
-        end
       end
     end
     $game_variables[VAR].push([actor_name, [data_name, 1]])  
