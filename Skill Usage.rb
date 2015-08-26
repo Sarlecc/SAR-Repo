@@ -68,7 +68,7 @@ def initialize
 end
  
  
- #fill the data array @t with actor_name, skill and amount of times used
+ #fill the data array $game_variables[VAR] with actor_name, skill and amount of times used
 def fill_data(actor_name, data_name)
   if $game_variables[VAR].empty?
     $game_variables[VAR].push([actor_name, [data_name, 1]])
