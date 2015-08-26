@@ -21,6 +21,8 @@
 # Outputs to the console and to a .txt called Results.txt located in the
 # Game folder in the following format:
 #
+# Actor: Eric
+#
 # Skill               Times        Percent
 # Attack:             3:           75.0%
 # Cleave:             1:           25.0%  
