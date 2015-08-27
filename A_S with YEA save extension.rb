@@ -123,11 +123,11 @@ end
 # EDIT PAST THIS POINT AT YOUR OWN RISK
 #==============================================================================
 module DataManager
-  
+  include SAR::YEASAVEPLUS
   def self.setup_new_game
     create_game_objects
-    if SAR::YEASAVEPLUS::USE_SYSTEM_FILE
-    DataManager.load_settings(SAR::YEASAVEPLUS::SYSTEM_INDEX)
+    if USE_SYSTEM_FILE
+    DataManager.load_settings(SYSTEM_INDEX)
     end
     $game_party.setup_starting_members
     $game_map.setup($data_system.start_map_id)
@@ -159,10 +159,10 @@ def self.save_settings(index)
       $game_system.on_before_save
       Marshal.dump(make_save_header, file)
       Marshal.dump($game_system, file)
-      for var_id in SAR::YEASAVEPLUS::SYSTEM_SAVED_VARIABLES
+      for var_id in SYSTEM_SAVED_VARIABLES
           Marshal.dump($game_variables[var_id], file)
         end
-      for swi_id in SAR::YEASAVEPLUS::SYSTEM_SAVED_SWITCHES
+      for swi_id in SYSTEM_SAVED_SWITCHES
         Marshal.dump($game_switches[swi_id], file)
       end
     end
@@ -177,10 +177,10 @@ def self.load_settings_without_rescue(index)
     File.open(make_filename(index), "rb") do |file|
       Marshal.load(file)
       $game_system        = (Marshal.load(file))
-      for var_id in SAR::YEASAVEPLUS::SYSTEM_SAVED_VARIABLES
+      for var_id in SYSTEM_SAVED_VARIABLES
           $game_variables[var_id] = (Marshal.load(file))
         end
-      for swi_id in SAR::YEASAVEPLUS::SYSTEM_SAVED_SWITCHES
+      for swi_id in SYSTEM_SAVED_SWITCHES
           $game_switches[swi_id] = (Marshal.load(file))
         end
       reload_map_if_updated
@@ -192,6 +192,7 @@ def self.load_settings_without_rescue(index)
 end
 
 class Scene_Map < Scene_Base
+  include SAR::YEASAVEPLUS
   
   def update_scene
     check_gameover
@@ -199,17 +200,17 @@ class Scene_Map < Scene_Base
     update_encounter unless scene_changing?
     update_call_menu unless scene_changing?
     update_call_debug unless scene_changing?
-    if SAR::YEASAVEPLUS::USE_KEY_AUTOSAVE
+    if USE_KEY_AUTOSAVE
     update_auto_save unless scene_changing?
     end
   end
   
   
     def update_auto_save
-      if Input.trigger?(SAR::YEASAVEPLUS::KEY)
-        DataManager.auto_save(SAR::YEASAVEPLUS::AUTO_INDEX)
-        if SAR::YEASAVEPLUS::USE_KEY_MESSAGE
-          $game_message.add(sprintf(SAR::YEASAVEPLUS::DISPLAYED_KEY_MESSAGE))
+      if Input.trigger?(KEY)
+        DataManager.auto_save(AUTO_INDEX)
+        if USE_KEY_MESSAGE
+          $game_message.add(sprintf(DISPLAYED_KEY_MESSAGE))
         end
       end
     end
@@ -219,6 +220,8 @@ class Scene_Map < Scene_Base
 if $imported["YEA-SaveEngine"]
   
   class Window_FileList < Window_Selectable
+    include SAR::YEASAVEPLUS
+    include YEA::SAVE
     
     def initialize(dx, dy)
     super(dx, dy, 128, Graphics.height - dy)
@@ -229,7 +232,7 @@ if $imported["YEA-SaveEngine"]
     
     def draw_item(index)
     header = DataManager.load_header(index)
-    if index == SAR::YEASAVEPLUS::SYSTEM_INDEX && SAR::YEASAVEPLUS::USE_SYSTEM_FILE
+    if index == SYSTEM_INDEX && USE_SYSTEM_FILE
       enabled = false
     else
     enabled = !header.nil?
@@ -238,25 +241,26 @@ if $imported["YEA-SaveEngine"]
     rect.width -= 4
     draw_icon(save_icon?(header), rect.x, rect.y, enabled)
     change_color(normal_color, enabled)
-    if index == SAR::YEASAVEPLUS::SYSTEM_INDEX && SAR::YEASAVEPLUS::USE_SYSTEM_FILE
-      text = sprintf(SAR::YEASAVEPLUS::SYSTEM, "")
-    elsif index == SAR::YEASAVEPLUS::AUTO_INDEX && SAR::YEASAVEPLUS::USE_AUTO_FILE
-      text = sprintf(SAR::YEASAVEPLUS::AUTO_SAVE, (index).group)
-    elsif SAR::YEASAVEPLUS::USE_AUTO_FILE && SAR::YEASAVEPLUS::AUTO_INDEX >0 && index >= 0 + SAR::YEASAVEPLUS::AUTO_INDEX
-      text = sprintf(YEA::SAVE::SLOT_NAME, (((index).group).to_i - 1).to_s)
+    if index == SYSTEM_INDEX && USE_SYSTEM_FILE
+      text = sprintf(SYSTEM, "")
+    elsif index == AUTO_INDEX && USE_AUTO_FILE
+      text = sprintf(AUTO_SAVE, (index).group)
+    elsif USE_AUTO_FILE && AUTO_INDEX >0 && index >= 0 + AUTO_INDEX
+      text = sprintf(SLOT_NAME, (((index).group).to_i - 1).to_s)
     else
-    text = sprintf(YEA::SAVE::SLOT_NAME, (index).group)
+    text = sprintf(SLOT_NAME, (index).group)
     end
     draw_text(rect.x+24, rect.y, rect.width-24, line_height, text)
   end
 end
 
 class Window_FileStatus < Window_Base
+  include SAR::YEASAVEPLUS
   
   def draw_system_slot(dx, dy, dw)
     reset_font_settings
     change_color(system_color)
-    text = sprintf(SAR::YEASAVEPLUS::SYSTEM, "")
+    text = sprintf(SYSTEM, "")
     draw_text(dx, dy, dw, line_height, text)
     cx = text_size(text).width
     change_color(normal_color)
@@ -266,7 +270,7 @@ class Window_FileStatus < Window_Base
   def draw_auto_slot(dx, dy, dw)
     reset_font_settings
     change_color(system_color)
-    text = sprintf(SAR::YEASAVEPLUS::AUTO_SAVE, "")
+    text = sprintf(AUTO_SAVE, "")
     draw_text(dx, dy, dw, line_height, text)
     cx = text_size(text).width
     change_color(normal_color)
@@ -275,21 +279,21 @@ class Window_FileStatus < Window_Base
   
   
   def draw_system_column(dx, dy, dw)
-    data = SAR::YEASAVEPLUS::SYSTEM_DISPLAYED_VARIABLES
+    data = SYSTEM_DISPLAYED_VARIABLES
     draw_column_data(data, dx, dy, dw)
   end
   
   def draw_system_column2(dx, dy, dw)
-    data = SAR::YEASAVEPLUS::SYSTEM_DISPLAYED_VARIABLES2
+    data = SYSTEM_DISPLAYED_VARIABLES2
     draw_column_data(data, dx, dy, dw)
   end
 
   def draw_save_contents
-    if @current_index == SAR::YEASAVEPLUS::SYSTEM_INDEX && SAR::YEASAVEPLUS::USE_SYSTEM_FILE
+    if @current_index == SYSTEM_INDEX && USE_SYSTEM_FILE
       draw_system_slot(4, 0, contents.width/2-8)
       draw_system_column(16, line_height*1.5, contents.width/2-48)
       draw_system_column2(contents.width/2+16, line_height*1.5, contents.width/2-48)
-    elsif @current_index == SAR::YEASAVEPLUS::AUTO_INDEX && SAR::YEASAVEPLUS::USE_AUTO_FILE
+    elsif @current_index == AUTO_INDEX && USE_AUTO_FILE
       draw_auto_slot(4, 0, contents.width/2-8)
       draw_save_playtime(contents.width/2+4, 0, contents.width/2-8)
       draw_save_total_saves(4, line_height, contents.width/2-8)
@@ -312,10 +316,11 @@ class Window_FileStatus < Window_Base
 end
 
 class Window_FileAction < Window_HorzCommand
+  include SAR::YEASAVEPLUS
   
   def load_enabled?
     return false if @header.nil?
-    return false if @current_index == SAR::YEASAVEPLUS::SYSTEM_INDEX && SAR::YEASAVEPLUS::USE_SYSTEM_FILE
+    return false if @current_index == SYSTEM_INDEX && USE_SYSTEM_FILE
     return true
   end
   
@@ -323,14 +328,14 @@ class Window_FileAction < Window_HorzCommand
     return false if @header.nil? && SceneManager.scene_is?(Scene_Load)
     return false if SceneManager.scene_is?(Scene_Load)
     return false if $game_system.save_disabled
-    return false if @current_index == SAR::YEASAVEPLUS::SYSTEM_INDEX && SAR::YEASAVEPLUS::USE_SYSTEM_FILE
-    return false if @current_index == SAR::YEASAVEPLUS::AUTO_INDEX && SAR::YEASAVEPLUS::USE_AUTO_FILE
+    return false if @current_index == SYSTEM_INDEX && USE_SYSTEM_FILE
+    return false if @current_index == AUTO_INDEX && USE_AUTO_FILE
     return true
   end
   
   def delete_enabled?
     return false if @header.nil?
-    return false if @current_index == SAR::YEASAVEPLUS::SYSTEM_INDEX && SAR::YEASAVEPLUS::USE_SYSTEM_FILE
+    return false if @current_index == SYSTEM_INDEX && USE_SYSTEM_FILE
     return true
   end
 end
