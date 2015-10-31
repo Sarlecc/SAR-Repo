@@ -4,7 +4,7 @@
  Script: Time_Machine
  Author: Sarlecc
  Terms: http://sarleccmythicalgames.blogspot.com/p/blog-page_12.html
- Version: 0.9.2
+ Version: 1.0.0
  This script was originally made for NeoFantasy
 ---------------------------------------------------------------------
 
@@ -26,6 +26,7 @@
  <time_machine: all: x> load every x'th turn* for enemies and actors (x is a number)
  <time_machine: actors: x> load every x'th turn* for actors (x is a number)
  <time_machine: enemies: x> load every x'th turn* for enemies (x is a number)
+ <time_m_damage: x> x is the key for the DAMAGE constant in the config
 
  *note if xth turn doesn't exist then you can't use the skill.
  *note2 x must be greater than 0 (I dare you to input a 0).
@@ -42,11 +43,11 @@
 
  NOTES:
  1. saving every turn will keep all the data updated so not recommended
- 2. damage calculation stuff not done yet
- 3. animation stuff not done yet
- 4. equips will remain whatever was last equipped expect to lose equip
+ 2. animation stuff not done yet note that you may be able to do animations
+    through the DAMAGE using the Proc's
+ 3. equips will remain whatever was last equipped expect to lose equip
  items now if they are changed in battle.
- 5. no event reversing (in fact probably won't do this one). However
+ 4. no event reversing (in fact probably won't do this one). However
     if it is just damage related/state related then it should roll back.
       
  Bug fixes:
@@ -75,7 +76,9 @@
         state_turns might be reset now needs further testing.
         buffs are now added if they were saved but no longer present their
         turns are also updated if the actor still has them.
+ 1.0.0: Damage calculations added.
  =====================================================================
+ 
 =end
 
 $imported = {} if $imported.nil?
@@ -88,13 +91,34 @@ module SAR
   module Time_Machine_Mod
     #game_variable to hold actor/enemy data 303 default
     VAR = 303
+    
     #game_variable to hold item data 304 default
     VAR2 = 304
+    
     #refund time_machine items? false = no : true = yes
     REFUND = false
+    
     #save data location and file name
     #must be a string default is "Time_Machine_Data.rvdata2"
     SAVE_FILE = "Time_Machine_Data.rvdata2"
+    
+    #key game_variable for damage formulas
+    KEY = 305
+    
+    #Damage formula's
+    # Skills will use whatever their notetag is set to if they have no note
+    # then they will default to 0.
+    # defaults
+    # 0 no damage
+    # 1 decrease hp of battle member 2 by 20% of max hp
+    # 2 give battle member 1 the death state
+    # number => Proc::new do |*args, &block| method end,
+    DAMAGE = {0 => Proc::new do |*args, &block| 0 end, #blank damage method
+              1 => Proc::new do |*args, &block| 
+              $game_party.battle_members[1].hp -= ($game_party.battle_members[1].mhp * 0.2).round 
+              end,
+              2 => Proc::new do |*args, &block| $game_party.battle_members[0].add_state(1) end,
+    } #do not remove this
   end
 end
 #=======================================
@@ -112,6 +136,7 @@ module SAR
     module ITEM
       TIME_MACHINE = /<(?:TIME_MACHINE|time_machine):[ ](all|actors|enemies):[ ](\d+)>/i
       TIME_MACHINE_SET = /<(?:TIME_MACHINE_SET|time_machine_set):?[ ]?(\d*)?>/i
+      TIME_MACHINE_DAMAGE = /<(?:TIME_M_DAMAGE|time_m_damage):[ ](\d+)>/i
     end
     module STATE
       TIME_MACHINE_SET = /<(?:TIME_MACHINE_SET|time_machine_set):[ ](\d*)>/i
@@ -154,6 +179,7 @@ class RPG::Skill < RPG::UsableItem
   attr_accessor :time_set
   attr_accessor :time_machine
   attr_accessor :turn_set
+  attr_accessor :time_key
   
   def load_notetags_tm
     @time_turn = 1
@@ -161,6 +187,7 @@ class RPG::Skill < RPG::UsableItem
     @time_scope = ""
     @time_set = false
     @time_machine = false
+    @time_key = 0
     self.note.split(/[\r\n]+/).each { |line|
       case line
       when SAR::REGEXP::ITEM::TIME_MACHINE_SET
@@ -191,6 +218,8 @@ class RPG::Skill < RPG::UsableItem
           @time_machine = true
         else; next
         end
+        when SAR::REGEXP::ITEM::TIME_MACHINE_DAMAGE
+            @time_key = $1.to_i
       end
       }
       rescue ArgumentError => e
@@ -207,6 +236,7 @@ class RPG::Skill < RPG::UsableItem
   attr_accessor :time_set
   attr_accessor :time_machine
   attr_accessor :turn_set
+  attr_accessor :time_key
   
   def load_notetags_tm
     @time_turn = 1
@@ -214,6 +244,7 @@ class RPG::Skill < RPG::UsableItem
     @time_scope = ""
     @time_set = false
     @time_machine = false
+    @time_key = 0
     self.note.split(/[\r\n]+/).each { |line|
       case line
       when SAR::REGEXP::ITEM::TIME_MACHINE_SET
@@ -244,6 +275,8 @@ class RPG::Skill < RPG::UsableItem
           @time_machine = true
         else; next
         end
+        when SAR::REGEXP::ITEM::TIME_MACHINE_DAMAGE
+            @time_key = $1.to_i
       end
       }
       rescue ArgumentError => e
@@ -408,6 +441,7 @@ class Time_Machine
         end
       end
       load_items
+      do_damage
       return true
   end
   
@@ -426,6 +460,7 @@ class Time_Machine
           load_items(turn, o)
         end
       end
+      do_damage
   end
   
   # bring enemies back to turn
@@ -441,6 +476,7 @@ class Time_Machine
           end
         end
       end
+      do_damage
   end
   
   # load actor data from load_hash
@@ -515,7 +551,11 @@ class Time_Machine
       $game_party.set_weapons(@load_item_hash[1], @item_amounts[1])
       $game_party.set_armors(@load_item_hash[2], @item_amounts[2])
     end
-  
+    
+    def self.do_damage(key = $game_variables[KEY], *args, &block)
+      DAMAGE[key]::call(*args, &block)
+    end
+    
 end #end Time_Machine
 
 #=======================
@@ -528,9 +568,15 @@ class Game_Action
   def set_skill(skill_id)
     time_machine_set_skill(skill_id)
     case $data_skills[skill_id].time_scope
-    when "ALL"; Time_Machine.return_all
-    when "ENEMIES"; Time_Machine.return_enemies
-    when "ACTORS"; Time_Machine.return_actors
+    when "ALL" 
+      $game_variables[SAR::Time_Machine_Mod::KEY] = $data_skills[skill_id].time_key
+      Time_Machine.return_all
+    when "ENEMIES"
+      $game_variables[SAR::Time_Machine_Mod::KEY] = $data_skills[skill_id].time_key
+      Time_Machine.return_all
+    when "ACTORS"
+      $game_variables[SAR::Time_Machine_Mod::KEY] = $data_skills[skill_id].time_key
+      Time_Machine.return_all
     end
     if $data_skills[skill_id].time_set
       if $data_skills[skill_id].turn_set == 0
@@ -546,9 +592,15 @@ class Game_Action
   def set_item(item_id)
     time_machine_set_item(item_id)
     case $data_items[item_id].time_scope
-    when "ALL"; Time_Machine.return_all
-    when "ENEMIES"; Time_Machine.return_enemies
-    when "ACTORS"; Time_Machine.return_actors
+    when "ALL"
+      $game_variables[SAR::Time_Machine_Mod::KEY] = $data_skills[skill_id].time_key
+      Time_Machine.return_all
+    when "ENEMIES"
+      $game_variables[SAR::Time_Machine_Mod::KEY] = $data_skills[skill_id].time_key
+      Time_Machine.return_all
+    when "ACTORS"
+      $game_variables[SAR::Time_Machine_Mod::KEY] = $data_skills[skill_id].time_key
+      Time_Machine.return_all
     end
     if $data_items[item_id].time_set
       if $data_items[item_id].turn_set == 0
