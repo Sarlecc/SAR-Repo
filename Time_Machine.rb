@@ -98,8 +98,6 @@ module SAR
     #must be a string default is "Time_Machine_Data.rvdata2"
     SAVE_FILE = "Time_Machine_Data.rvdata2"
     
-    #key game_variable for damage formulas
-    KEY = 305
   end
 end
 #=======================================
@@ -616,15 +614,12 @@ class Scene_Battle < Scene_Base
     return turn_end unless @subject
     case @subject.current_action.item.time_scope
     when "ALL"
-      $game_variables[SAR::Time_Machine_Mod::KEY] = @subject.current_action.item.time_key
       Time_Machine.return_all
       execute_action
     when "ENEMIES"
-      $game_variables[SAR::Time_Machine_Mod::KEY] = @subject.current_action.item.time_key
       Time_Machine.return_all
       execute_action
     when "ACTORS"
-      $game_variables[SAR::Time_Machine_Mod::KEY] = @subject.current_action.item.time_key
       Time_Machine.return_all
       execute_action
     end
