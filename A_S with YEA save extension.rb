@@ -2,7 +2,7 @@
 # Sarlecc's Auto/System save files with YEA save extension
 # Ease of use - Easy
 # Date created - 11/12/2014
-# Version 1.0.1
+# Version 1.1.0
 #============================================================================
 #============================================================================
 # Credits:
@@ -43,7 +43,11 @@
 #   Note it assumes that the system file will be using index 0 or the last index.
 #   I decided to do it this way because just getting it to work with different
 #   auto save indexs was rather complex.
-# As always you can customize just about every option for these new features.
+#   As always you can customize just about every option for these new features.
+#
+# version 1.1.0
+# - You may now have the continue command load the auto save instead of
+#   going to the save file scene.
 #============================================================================== 
 
 module SAR
@@ -116,6 +120,13 @@ module SAR
     # Message to be displayed
     #========================================================================
     DISPLAYED_KEY_MESSAGE = "Auto Save successful"
+    #========================================================================
+    # continue title command
+    # skips going to save file list and load auto save instead
+    # true = skips
+    # false = normal
+    #========================================================================
+    AS_CONTINUE = false
   end
 end
 
@@ -216,6 +227,25 @@ class Scene_Map < Scene_Base
     end
     
   end
+  
+  #class Scene_Title
+  class Scene_Title < Scene_Base
+    include SAR::YEASAVEPLUS
+  #--------------------------------------------------------------------------
+  # * alias [Continue] Command
+  #--------------------------------------------------------------------------
+  alias sar_as_command_continue command_continue
+  def command_continue
+    close_command_window
+    if AS_CONTINUE == true
+      DataManager.load_game(AUTO_INDEX)
+      fadeout_all
+      SceneManager.call(Scene_Map)
+    else
+      sar_as_command_continue
+    end
+  end
+end
 
 if $imported["YEA-SaveEngine"]
   
