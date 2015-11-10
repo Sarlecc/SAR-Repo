@@ -4,7 +4,7 @@
  Script: Time_Machine
  Author: Sarlecc
  Terms: http://sarleccmythicalgames.blogspot.com/p/blog-page_12.html
- Version: 1.0.1
+ Version: 1.1.1
  This script was originally made for NeoFantasy
 ---------------------------------------------------------------------
 
@@ -74,6 +74,9 @@
  1.0.1: Damage calculations now performed during turn processing also as a result
         animations will play as normal. Removed proc damage formula's use the
         normal formula box in item/skills.
+ 1.1.1: You can now reset turn count.
+        Fixed a bug with using the actors scope in <time_machine: actors: x> notetag
+        was using an old method declaration for resetting items.
  =====================================================================
 =end
 
@@ -97,6 +100,11 @@ module SAR
     #save data location and file name
     #must be a string default is "Time_Machine_Data.rvdata2"
     SAVE_FILE = "Time_Machine_Data.rvdata2"
+    
+    #reset turns? true : false
+    #when true you can reset to the first battle turn over and
+    #over again
+    RESET = false
     
   end
 end
@@ -333,6 +341,16 @@ class Game_Party < Game_Unit
   
 end # end Game_Party
 
+#class Game_Troop
+class Game_Troop < Game_Unit
+  
+  #new method decrease_turn
+  def decrease_turn
+    @turn_count = 0
+  end
+end
+
+
 #===================================
 # New class Time_Machine
 #===================================
@@ -415,6 +433,7 @@ class Time_Machine < Scene_Battle
         end
       end
       load_items
+      reset_turns
       return true
   end
   
@@ -429,10 +448,11 @@ class Time_Machine < Scene_Battle
           $game_party.battle_members.each do |actor|
             load_actor(actor, turn, o)
           end
-        else
-          load_items(turn, o)
         end
       end
+      load_items
+      reset_turns
+      return true
   end
   
   # bring enemies back to turn
@@ -448,6 +468,8 @@ class Time_Machine < Scene_Battle
           end
         end
       end
+      reset_turns
+      return true
   end
   
   # load actor data from load_hash
@@ -521,6 +543,13 @@ class Time_Machine < Scene_Battle
       $game_party.set_items(@load_item_hash[0], @item_amounts[0])
       $game_party.set_weapons(@load_item_hash[1], @item_amounts[1])
       $game_party.set_armors(@load_item_hash[2], @item_amounts[2])
+    end
+    
+    #reset turn count
+    def reset_turns
+      if RESET
+       $game_troop.decrease_turn
+      end
     end
   end
 end #end Time_Machine
