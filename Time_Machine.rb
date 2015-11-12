@@ -77,6 +77,12 @@
  1.1.1: You can now reset turn count.
         Fixed a bug with using the actors scope in <time_machine: actors: x> notetag
         was using an old method declaration for resetting items.
+ 1.1.2: Fixed bug with processing actions if an action was encountered
+        with no valid move it would give an error. 
+        
+        Also found a bug with resetting to turn one over and over again if 
+        the skill is not used when available it wont become available on 
+        again on that turn working on fixing this
  =====================================================================
 =end
 
@@ -631,7 +637,7 @@ class Scene_Battle < Scene_Base
     Time_Machine.start
   end
   
-  #--------------------------------------------------------------------------
+#--------------------------------------------------------------------------
   # * alias Battle Action Processing
   #--------------------------------------------------------------------------
   alias sar_tm_process_action process_action
@@ -641,15 +647,18 @@ class Scene_Battle < Scene_Base
       @subject = BattleManager.next_subject
     end
     return turn_end unless @subject
+    if @subject.current_action
     case @subject.current_action.item.time_scope
     when "ALL"
       Time_Machine.return_all
+      @status_window.refresh
       execute_action
     when "ENEMIES"
       Time_Machine.return_all
       execute_action
     when "ACTORS"
       Time_Machine.return_all
+      @status_window.refresh
       execute_action
     end
     if @subject.current_action.item.time_set
@@ -659,6 +668,7 @@ class Scene_Battle < Scene_Base
         Time_Machine.save_turn_data
       end
     end
+  end
     sar_tm_process_action
   end
   
