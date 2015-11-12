@@ -4,7 +4,7 @@
  Script: Time_Machine
  Author: Sarlecc
  Terms: http://sarleccmythicalgames.blogspot.com/p/blog-page_12.html
- Version: 1.1.1
+ Version: 1.1.2
  This script was originally made for NeoFantasy
 ---------------------------------------------------------------------
 
