@@ -4,7 +4,7 @@
  Script: Time_Machine
  Author: Sarlecc
  Terms: http://sarleccmythicalgames.blogspot.com/p/blog-page_12.html
- Version: 1.1.2
+ Version: 1.1.4
  This script was originally made for NeoFantasy
 ---------------------------------------------------------------------
 
@@ -34,7 +34,6 @@
  
  <time_machine_set: x> save every x'th turn
  
- *note all turn saving is done now at turn end.
 ---------------------------------------------------------------------
 
  NOTES:
@@ -74,15 +73,13 @@
  1.0.1: Damage calculations now performed during turn processing also as a result
         animations will play as normal. Removed proc damage formula's use the
         normal formula box in item/skills.
- 1.1.1: You can now reset turn count.
-        Fixed a bug with using the actors scope in <time_machine: actors: x> notetag
-        was using an old method declaration for resetting items.
+ 1.1.1: You can now reset turn count?
  1.1.2: Fixed bug with processing actions if an action was encountered
-        with no valid move it would give an error. 
-        
-        Also found a bug with resetting to turn one over and over again if 
-        the skill is not used when available it wont become available on 
-        again on that turn working on fixing this
+        with no valid move it would give an error.
+ 1.1.4  Compatibility update with YEA battle no more masssive postive buff pop
+        up.
+        resetting to turn one over and over again now works as intended.
+        Processing action error should be fixed for good now.
  =====================================================================
 =end
 
@@ -291,7 +288,16 @@ class RPG::State < RPG::BaseItem
  end
 end #end state note tag loading
 
-
+#module BattleManager
+module BattleManager
+  #alias turn_end raise tm_turns
+  class <<self; alias turn_end_tm turn_end; end
+    def self.turn_end
+      $game_troop.tm_turns = $game_troop.turn_count
+      turn_end_tm
+    end
+  end
+  
 #==============================
 # class Game_Party
 #==============================
@@ -349,10 +355,19 @@ end # end Game_Party
 
 #class Game_Troop
 class Game_Troop < Game_Unit
+  #new variable tm_turns gets raised at turn end vs turn start
+  attr_accessor :tm_turns
+  #aliased clear
+  alias tm_clear clear
+  def clear
+    @tm_turns = 0
+    tm_clear
+  end
   
   #new method decrease_turn
   def decrease_turn
     @turn_count = 0
+    @tm_turns = 0
   end
 end
 
@@ -498,10 +513,12 @@ class Time_Machine < Scene_Battle
             end}
           #update buff turns and add buffs
           @load_hash[i][o].buffs.each_index { |buff|
+          if @load_hash[i][o].buff?(buff)
             if actor.buff?(buff)
               actor.buff_turns[buff] = @load_hash[i][o].buff_turns[buff].to_i
-            elsif !actor.buff?(buff)
+            else !actor.buff?(buff)
               actor.add_buff(buff, @load_hash[i][o].buff_turns[buff].to_i)
+            end
             end}
           #remove buffs not included
           actor.buffs.each_index { |buff|
@@ -531,10 +548,12 @@ class Time_Machine < Scene_Battle
             end}
           #update buff turns and add buffs
           @load_hash[i][o].buffs.each_index { |buff|
+          if @load_hash[i][o].buff?(buff)
             if enemy.buff?(buff)
               enemy.buff_turns[buff] = @load_hash[i][o].buff_turns[buff].to_i
             elsif !enemy.buff?(buff)
               enemy.add_buff(buff, @load_hash[i][o].buff_turns[buff].to_i)
+            end
             end}
           #remove buffs not included
           enemy.buffs.each_index { |buff|
@@ -564,17 +583,21 @@ end #end Time_Machine
 # class Game_BattlerBase
 #========================
 class Game_BattlerBase
-  
+  include SAR::Time_Machine_Mod
   #aliased skill_conditions_met?
   alias time_machine_skill_conditions_met? skill_conditions_met?
     def skill_conditions_met?(skill)
     if skill.time_machine
     time_machine_skill_conditions_met?(skill) &&
-    ($game_troop.turn_count - (skill.time_turn - 1)) % skill.time_turn == 0 && 
-    Time_Machine.data_hash.include?($game_troop.turn_count - (skill.time_turn - 1))
+    ($game_troop.tm_turns - (skill.time_turn - 1)) % skill.time_turn == 0 && 
+    if RESET
+      Time_Machine.data_hash.include?(0)
+    else
+    Time_Machine.data_hash.include?($game_troop.tm_turns - (skill.time_turn - 1))
+    end
     elsif skill.turn_set > 0
     time_machine_skill_conditions_met?(skill) &&
-    $game_troop.turn_count % skill.turn_set === 0
+    $game_troop.tm_turns % skill.turn_set === 0
     else
     time_machine_skill_conditions_met?(skill)
     end
@@ -585,11 +608,15 @@ class Game_BattlerBase
   def item_conditions_met?(item)
     if item.time_machine
     time_machine_item_conditions_met?(item) &&
-    ($game_troop.turn_count - (item.time_turn - 1)) % item.time_turn == 0 && 
-    Time_Machine.data_hash.include?($game_troop.turn_count - (item.time_turn - 1))
+    ($game_troop.tm_turns - (item.time_turn - 1)) % item.time_turn == 0 &&
+    if RESET
+      Time_Machine.data_hash.include?(0)
+    else
+    Time_Machine.data_hash.include?($game_troop.tm_turns - (skill.time_turn - 1))
+    end
     elsif item.turn_set > 0
     time_machine_item_conditions_met?(item) &&
-    $game_troop.turn_count % item.turn_set === 0
+    $game_troop.tm_turns % item.turn_set === 0
     else
     time_machine_item_conditions_met?(item)
     end
@@ -627,17 +654,15 @@ end # end Game_Battler
 #============================
 class Scene_Battle < Scene_Base
   #--------------------------------------------------------------------------
-  # * Start Processing overwritten
+  # * alias Start Processing
   #--------------------------------------------------------------------------
+  alias sar_tm_start start
   def start
-    super
-    create_spriteset
-    create_all_windows
-    BattleManager.method_wait_for_message = method(:wait_for_message)
     Time_Machine.start
+    sar_tm_start
   end
   
-#--------------------------------------------------------------------------
+  #--------------------------------------------------------------------------
   # * alias Battle Action Processing
   #--------------------------------------------------------------------------
   alias sar_tm_process_action process_action
@@ -648,28 +673,33 @@ class Scene_Battle < Scene_Base
     end
     return turn_end unless @subject
     if @subject.current_action
-    case @subject.current_action.item.time_scope
-    when "ALL"
-      Time_Machine.return_all
-      @status_window.refresh
-      execute_action
-    when "ENEMIES"
-      Time_Machine.return_all
-      execute_action
-    when "ACTORS"
-      Time_Machine.return_all
-      @status_window.refresh
-      execute_action
-    end
-    if @subject.current_action.item.time_set
-      if @subject.current_action.item.turn_set == 0
-        Time_Machine.save_turn_data
-      elsif $game_troop.turn_count % @subject.current_action.item.turn_set === 0
-        Time_Machine.save_turn_data
+      @subject.current_action.prepare
+      if @subject.current_action.valid?
+        if @subject.current_action.item.time_set
+          if @subject.current_action.item.turn_set == 0
+            Time_Machine.save_turn_data
+          elsif $game_troop.turn_count % @subject.current_action.item.turn_set === 0
+            Time_Machine.save_turn_data
+          end
+        end
+        case @subject.current_action.item.time_scope
+          when "ALL"
+            Time_Machine.return_all
+            @status_window.refresh
+            execute_action
+          when "ENEMIES"
+            Time_Machine.return_all
+            execute_action
+          when "ACTORS"
+            Time_Machine.return_all
+            @status_window.refresh
+            execute_action
+        end
       end
+      sar_tm_process_action
     end
   end
-    sar_tm_process_action
-  end
+
+
   
 end #end Scene_Battle
