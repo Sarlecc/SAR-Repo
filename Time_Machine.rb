@@ -124,11 +124,11 @@ end
 module SAR
   module REGEXP
     module ITEM
-      TIME_MACHINE = /<(?:TIME_MACHINE|time_machine):[ ](all|actors|enemies):[ ](\d+)>/i
-      TIME_MACHINE_SET = /<(?:TIME_MACHINE_SET|time_machine_set):?[ ]?(\d*)?>/i
+      TIME_MACHINE = /<(?:TIME_MACHINE):[ ](all|actors|enemies):[ ](\d+)>/i
+      TIME_MACHINE_SET = /<(?:TIME_MACHINE_SET):?[ ]?(\d*)?>/i
     end
     module STATE
-      TIME_MACHINE_SET = /<(?:TIME_MACHINE_SET|time_machine_set):[ ](\d*)>/i
+      TIME_MACHINE_SET = /<(?:TIME_MACHINE_SET):[ ](\d*)>/i
     end
   end
 end #End note tag module
