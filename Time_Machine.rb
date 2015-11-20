@@ -4,7 +4,7 @@
  Script: Time_Machine
  Author: Sarlecc
  Terms: http://sarleccmythicalgames.blogspot.com/p/blog-page_12.html
- Version: 1.1.4
+ Version: 1.1.5
  This script was originally made for NeoFantasy
 ---------------------------------------------------------------------
 
@@ -80,6 +80,7 @@
         up.
         resetting to turn one over and over again now works as intended.
         Processing action error should be fixed for good now.
+ 1.1.5 Skills are no longer used twice.
  =====================================================================
 =end
 
@@ -687,14 +688,17 @@ class Scene_Battle < Scene_Base
             Time_Machine.return_all
             @status_window.refresh
             execute_action
+            @subject.remove_current_action
           when "ENEMIES"
             Time_Machine.return_all
             execute_action
+            @subject.remove_current_action
           when "ACTORS"
             Time_Machine.return_all
             @status_window.refresh
             execute_action
-        end
+            @subject.remove_current_action
+          end
       end
       sar_tm_process_action
     end
