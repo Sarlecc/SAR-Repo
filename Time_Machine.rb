@@ -4,7 +4,7 @@
  Script: Time_Machine
  Author: Sarlecc
  Terms: http://sarleccmythicalgames.blogspot.com/p/blog-page_12.html
- Version: 1.1.5
+ Version: 1.1.6
  This script was originally made for NeoFantasy
 ---------------------------------------------------------------------
 
@@ -81,6 +81,7 @@
         resetting to turn one over and over again now works as intended.
         Processing action error should be fixed for good now.
  1.1.5 Skills are no longer used twice.
+ 1.1.6 Fixed states attempting to save data when on the map crash.
  =====================================================================
 =end
 
@@ -391,12 +392,14 @@ class Time_Machine < Scene_Battle
   
   #start the save turn data methods
   def save_turn_data
-  $game_party.battle_members.each {|actor| fill_data(actor)}
-  $game_troop.members.each {|enemy| fill_data(enemy)}
-  fill_item_data($game_party.items, 0)
-  fill_item_data($game_party.weapons, 1)
-  fill_item_data($game_party.armors, 2)
-  save_turn_without_rescue
+    if SceneManager.scene_is?(Scene_Battle)
+      $game_party.battle_members.each {|actor| fill_data(actor)}
+      $game_troop.members.each {|enemy| fill_data(enemy)}
+      fill_item_data($game_party.items, 0)
+      fill_item_data($game_party.weapons, 1)
+      fill_item_data($game_party.armors, 2)
+      save_turn_without_rescue
+      end
   end
   
   # fill the data hash
