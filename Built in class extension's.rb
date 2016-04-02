@@ -1,6 +1,6 @@
 #==============================================================================
 # Built-in Class Extension's by Sarlecc
-# V1.90
+# V1.9.5
 #
 # String methods
 # "".remove_every(n, d) n = number, d = divsion (optional)
@@ -21,6 +21,21 @@
 #
 # Math method
 # Math.prime?(num)
+# Math.prime2?(num)
+# Math.prime2? is on average 2.5 times faster than Math.prime? if the number is prime; 
+# otherwise it is around 16-353 times slower
+# its recommended that you use Math.prime? for checking thousands of numbers at a time as Math.prime2? 
+# will give an error (I assume that it has to do with the multithreading and attempting to do the next 
+# number while still doing the previous number).
+# use Math.prime2? for checking larger primes
+# Math.prime? time for number 18987964267331664557:
+# 4521.762485 seconds
+# Math.prime2? time for number 18987964267331664557:
+# 1922.888493 seconds
+# Math.prime? time for 106573388391:
+# 0.000027-0.000028 seconds
+# Math.prime2? time for 106573388391:
+# 0.000452-0.009907 seconds
 #==============================================================================
 
 module SAR
@@ -61,6 +76,53 @@ module Math
       end
      else
      puts "Error: Number must be below 263882790666230 to help prevent long processing times"
+     end
+   end
+   
+   def self.prime2?(arg)
+     if arg > 1 && !arg.even?
+       n1 = 2
+       n2 = Math.sqrt(arg).ceil
+       p = true
+       threads = []
+       threads << t1 = Thread.new do
+           while n1 <= n2 && p != false
+           if arg % n1 === 0
+             p = false
+             break
+           end
+           if n1.even?
+             n1 += 1
+           else
+             n1 += 2
+           end
+          end
+          t1.kill
+         end
+        threads << t2 = Thread.new do
+           while n2 > n1 && p != false
+           if arg % n2 === 0
+             p = false
+             break
+           end
+           if n2.even?
+             n2 -= 1
+           else
+             n2 -= 2
+           end
+           end
+           t2.kill
+         end
+         threads.each {|thr| thr.join}
+       if p == true
+         return true
+       else
+         return false
+       end
+     elsif arg == 2
+       return true
+     else
+       return false
      end
    end
    
